@@ -1,5 +1,5 @@
 import { icon } from '../icons.js';
-import { h, go, chip, toast, render } from '../ui.js';
+import { h, go, chip, toast, render, confirmSheet } from '../ui.js';
 import { state, customerById, saveSettings } from '../store.js';
 import { daySlots, freeSlots, nearbyFreeDays, addDays, parseDate, formatDate, trDate, relDay, slotEnd, trShort } from '../core.js';
 import { bookSlot, appointmentSheet } from '../flows.js';
@@ -42,7 +42,8 @@ export function dayView(date) {
         toast('Gün tekrar açıldı'); render();
       } }, icon('unlock', 20), 'Günü tekrar aç')
     : !weeklyClosed && h('button', { class: 'danger', onclick: async () => {
-        if (dayAppts.length && !confirm(`Bu günde ${dayAppts.length} randevu var. Yine de kapatılsın mı? (Randevular silinmez)`)) return;
+        if (dayAppts.length && !(await confirmSheet({ title: 'Bu günde randevu var', ok: 'Yine de kapat', cancel: 'Vazgeç',
+          lines: [`${trDate(date)} günü için ${dayAppts.length} randevu kayıtlı.`, 'Günü kapatırsan randevular silinmez ama yeni randevu önerilmez.'] }))) return;
         await saveSettings({ closedDates: [...settings.closedDates, date].sort() });
         toast('Gün kapatıldı (tatil)'); render();
       } }, icon('lock', 20), 'Bu günü kapat (tatil / izin)');

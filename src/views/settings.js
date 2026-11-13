@@ -1,5 +1,5 @@
 import { icon } from '../icons.js';
-import { h, go, toast, render } from '../ui.js';
+import { h, go, toast, render, confirmSheet } from '../ui.js';
 import { state, saveSettings, reloadAfterImport } from '../store.js';
 import { toMinutes, fromMinutes, trDate } from '../core.js';
 import { importAll } from '../db.js';
@@ -66,7 +66,8 @@ export function settingsView() {
     const f = e.target.files[0]; if (!f) return;
     try {
       const data = await readBackupFile(f);
-      if (!confirm(`Yedekte ${data.customers.length} müşteri, ${data.appointments.length} randevu var. Mevcut verinin üzerine eklensin mi?`)) return;
+      if (!(await confirmSheet({ title: 'Yedek yüklensin mi?', ok: 'Evet, yükle', cancel: 'Vazgeç',
+        lines: [`Yedekte ${data.customers.length} müşteri ve ${data.appointments.length} randevu var.`, 'Mevcut verilerin üstüne eklenir, hiçbir şey silinmez.'] }))) { e.target.value = ''; return; }
       await importAll(data); await reloadAfterImport(); toast('Yedek yüklendi'); render();
     } catch (err) { toast(err.message); }
     e.target.value = '';

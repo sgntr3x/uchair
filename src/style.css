@@ -79,11 +79,11 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html { -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0; background: var(--bg); color: var(--ink);
-  font: 500 var(--fs-md)/var(--lh-body) var(--body);
-  padding: var(--s4) var(--s4) calc(var(--tab-h) + var(--safe-b) + var(--s6));
-}
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 500 var(--fs-md)/var(--lh-body) var(--body); }
+/* Kaydırma sayfada değil bu kutuda olur: üst şerit ve alt sekmeler hiç kıpırdamaz */
+#scroll { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: none; -webkit-overflow-scrolling: touch;
+  padding: var(--s4) var(--s4) calc(var(--tab-h) + var(--safe-b) + var(--s6)); }
 body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: var(--pole-h); background: var(--pole); background-size: var(--pole-h) var(--pole-h); z-index: 40; }
 #app { max-width: var(--w-max); margin: 0 auto; padding-top: var(--s2); }
 #view.with-fab { padding-bottom: calc(var(--fab-h) + var(--s5)); }

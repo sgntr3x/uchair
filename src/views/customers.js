@@ -1,5 +1,5 @@
 import { icon } from '../icons.js';
-import { h, go, toast, render, fill } from '../ui.js';
+import { h, go, toast, render, fill, confirmSheet } from '../ui.js';
 import { state, saveCustomer, deleteCustomer, restoreCustomer, apptsOf } from '../store.js';
 import { searchCustomers, formatDate, trShort, waNumber } from '../core.js';
 import { bookForCustomer, appointmentSheet } from '../flows.js';
@@ -57,7 +57,8 @@ export function customerView(id) {
         h('span', { class: 'grow' }, `${trShort(a.date)} ${a.date.slice(0, 4)}`), h('b', {}, a.time)))),
       h('div', { class: 'spacer' }),
       h('button', { class: 'danger', onclick: async () => {
-        if (!confirm(`${c.name} silinsin mi? ${hist.length} randevusu da silinir.`)) return;
+        if (!(await confirmSheet({ title: 'Müşteri silinsin mi?', ok: 'Evet, sil', cancel: 'Vazgeç',
+          lines: [{ text: c.name, strong: true }, hist.length ? `${hist.length} randevusu da silinir.` : 'Kayıtlı randevusu yok.'] }))) return;
         const snap = await deleteCustomer(c.id);
         go('/customers');
         toast('Müşteri silindi', { action: 'Geri al', onAction: async () => { await restoreCustomer(snap); render(); } });

@@ -57,7 +57,7 @@ async function main() {
   try { await purgeOldAppointments(); } catch (e) { console.warn('purge', e); }
   await load();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-  const toTop = () => { window.scrollTo(0, 0); document.scrollingElement && (document.scrollingElement.scrollTop = 0); };
+  const toTop = () => { document.getElementById('scroll').scrollTop = 0; };
   window.addEventListener('hashchange', () => { route(); toTop(); });
   window.addEventListener('uc:render', route);
   route();

@@ -198,7 +198,8 @@ export function appointmentSheet(ap) {
         } });
       } }, icon('move', 20), 'Başka saate taşı'),
       h('button', { class: 'danger', onclick: async () => {
-        if (!confirm('Randevu iptal edilsin mi?')) return;
+        if (!(await confirmSheet({ title: 'Randevu iptal edilsin mi?', ok: 'Evet, iptal et', cancel: 'Vazgeç',
+          lines: [{ text: c?.name || 'Silinmiş müşteri', strong: true }, `${trDate(ap.date)} · ${ap.time}`] }))) return;
         const removed = await removeAppointment(ap.id);
         close(); render();
         toast('Randevu iptal edildi', { action: 'Geri al', onAction: async () => {
