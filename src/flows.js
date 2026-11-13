@@ -2,7 +2,7 @@
 import { icon, serviceIconName } from './icons.js';
 import { h, sheet, toast, render, chip, fill, confirmSheet } from './ui.js';
 import { state, customerById, saveCustomer, addAppointment, updateAppointment, moveAppointment, removeAppointment, restoreAppointment } from './store.js';
-import { searchCustomers, nearbyAppointments, freeSlots, nearbyFreeDays, formatDate, trDate, trShort, trMonth, waNumber, slotEnd, monthMatrix, dayStatus, daySlots } from './core.js';
+import { searchCustomers, nearbyAppointments, reminderText, freeSlots, nearbyFreeDays, formatDate, trDate, trShort, trMonth, waNumber, slotEnd, monthMatrix, dayStatus, daySlots } from './core.js';
 
 const opts = () => ({ settings: state.settings, now: new Date() });
 
@@ -188,7 +188,7 @@ export function appointmentSheet(ap) {
       h('button', { class: 'primary', onclick: async () => { await updateAppointment({ ...ap, note: note.value, services: [...sel] }); toast('Kaydedildi'); close(); render(); } }, icon('check', 20), 'Kaydet'),
       c?.phone && h('div', { class: 'two' },
         h('a', { class: 'btn', href: 'tel:' + c.phone.replace(/\s/g, '') }, icon('phone', 20), 'Ara'),
-        h('a', { class: 'btn', href: 'https://wa.me/' + waNumber(c.phone), target: '_blank', rel: 'noopener' }, icon('chat', 20), 'WhatsApp')),
+        h('a', { class: 'btn', href: `https://wa.me/${waNumber(c.phone)}?text=${encodeURIComponent(reminderText({ name: c.name, date: ap.date, time: ap.time }))}`, target: '_blank', rel: 'noopener' }, icon('chat', 20), 'WhatsApp')),
       h('button', { onclick: () => {
         close();
         slotPicker({ title: 'Yeni saat seç', startDate: ap.date, onPick: async (d, t) => {

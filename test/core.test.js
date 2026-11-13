@@ -137,3 +137,9 @@ test('toplu ekleme: mevcut ve tekrar edenleri atlar', () => {
   assert.equal(dup.length, 2); // numarası kayıtlı + liste içinde tekrar
   assert.deepEqual(fresh.map((f) => f.name), ['Yeni Kişi', 'İsimsiz Numarasız']);
 });
+
+import { reminderText } from '../src/core.js';
+test('hatırlatma mesajı: ilk ad, tarih ve saat', () => {
+  assert.equal(reminderText({ name: 'Şükrü Işık', date: '2026-11-13', time: '11:00' }),
+    'Merhaba Şükrü, 13 Kasım Cuma saat 11:00 randevunuzu hatırlatmak istedim. Gelemeyecekseniz haber verir misiniz?');
+});

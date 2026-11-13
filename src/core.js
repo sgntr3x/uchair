@@ -209,3 +209,9 @@ export function nearbyAppointments(appointments, customerId, date, { days = 6, e
     .filter((a) => a.customerId === customerId && a.id !== excludeId && a.date >= today && Math.abs(dayDiff(date, a.date)) <= days)
     .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time));
 }
+
+/** Randevu hatırlatma mesajı (WhatsApp'ta hazır yazılı gelir) */
+export function reminderText({ name, date, time }) {
+  const first = (name || '').trim().split(/\s+/)[0];
+  return `Merhaba ${first}, ${trDate(date)} saat ${time} randevunuzu hatırlatmak istedim. Gelemeyecekseniz haber verir misiniz?`;
+}

@@ -1,4 +1,4 @@
-const CACHE = 'uchair-v10';
+const CACHE = 'uchair-v11';
 const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'src/style.css', 'src/icons.js', 'icons/icon-180.png', 'icons/icon-512.png', 'fonts/fraunces-latin-600-normal.woff2', 'fonts/fraunces-latin-ext-600-normal.woff2', 'fonts/fraunces-latin-700-normal.woff2', 'fonts/fraunces-latin-ext-700-normal.woff2', 'fonts/instrument-sans-latin-400-normal.woff2', 'fonts/instrument-sans-latin-ext-400-normal.woff2', 'fonts/instrument-sans-latin-500-normal.woff2', 'fonts/instrument-sans-latin-ext-500-normal.woff2', 'fonts/instrument-sans-latin-600-normal.woff2', 'fonts/instrument-sans-latin-ext-600-normal.woff2', 'fonts/instrument-sans-latin-700-normal.woff2', 'fonts/instrument-sans-latin-ext-700-normal.woff2', 'src/app.js', 'src/core.js', 'src/db.js', 'src/store.js', 'src/ui.js', 'src/flows.js', 'src/backup.js', 'src/notesImport.js',
   'src/views/day.js', 'src/views/calendar.js', 'src/views/customers.js', 'src/views/settings.js', 'src/views/import.js', 'src/views/bulk.js', 'src/customersImport.js'];
 
