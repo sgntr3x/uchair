@@ -24,7 +24,8 @@ export function customersView() {
   }
   input.addEventListener('input', draw);
   draw();
-  return h('div', {}, h('div', { class: 'two' }, input, h('button', { class: 'primary', onclick: () => go('/customer/new') }, icon('plus', 20), 'Yeni')), list);
+  return h('div', {}, h('div', { class: 'two' }, input, h('button', { class: 'primary', onclick: () => go('/customer/new') }, icon('plus', 20), 'Yeni')),
+    h('button', { class: 'ghost', onclick: () => go('/bulk') }, icon('paste', 20), 'Toplu ekle'), list);
 }
 
 export function customerView(id) {

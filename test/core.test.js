@@ -114,3 +114,26 @@ test('aynı hafta içi randevu uyarısı için yakın randevular', () => {
   assert.equal(nearbyAppointments(apps, 'c1', '2026-12-10', opt).length, 0);
   assert.equal(nearbyAppointments(apps, 'c1', '2026-11-15', { ...opt, excludeId: 'a' }).length, 0);
 });
+
+import { parseCustomers, normalizePhone, splitNewAndDuplicate } from '../src/customersImport.js';
+test('toplu müşteri ayrıştırma', () => {
+  const text = `Ahmet Yılmaz 0532 111 22 33
+0555 444 33 22 Mehmet Öztürk
+3. Şükrü Işık - 5321112244
+Ali Veli,+90 532 999 88 77
+Sadece İsim
+12345
+`;
+  const { items, skipped } = parseCustomers(text);
+  assert.deepEqual(items.map((i) => i.name), ['Ahmet Yılmaz', 'Mehmet Öztürk', 'Şükrü Işık', 'Ali Veli', 'Sadece İsim']);
+  assert.deepEqual(items.map((i) => i.phone), ['0532 111 22 33', '0555 444 33 22', '0532 111 22 44', '0532 999 88 77', '']);
+  assert.equal(skipped.length, 1);
+  assert.equal(normalizePhone('+90 (532) 111-22-33'), '0532 111 22 33');
+});
+test('toplu ekleme: mevcut ve tekrar edenleri atlar', () => {
+  const existing = [{ name: 'Ahmet Yılmaz', phone: '0532 111 22 33' }];
+  const { items } = parseCustomers('ahmet y 0532 111 22 33\nYeni Kişi 0544 000 11 22\nYeni Kişi 0544 000 11 22\nİsimsiz Numarasız');
+  const { fresh, dup } = splitNewAndDuplicate(items, existing);
+  assert.equal(dup.length, 2); // numarası kayıtlı + liste içinde tekrar
+  assert.deepEqual(fresh.map((f) => f.name), ['Yeni Kişi', 'İsimsiz Numarasız']);
+});

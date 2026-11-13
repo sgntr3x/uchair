@@ -9,6 +9,7 @@ import { calendarView } from './views/calendar.js';
 import { customersView, customerView } from './views/customers.js';
 import { settingsView } from './views/settings.js';
 import { importView } from './views/import.js';
+import { bulkView } from './views/bulk.js';
 
 const TABS = [['/calendar', 'calendar', 'Takvim', 'calendar'], ['/customers', 'user', 'Müşteriler', 'customers'], ['/settings', 'sliders', 'Ayarlar', 'settings']];
 
@@ -23,12 +24,13 @@ function route() {
     case 'customer': node = customerView(arg); title = 'Müşteri'; break;
     case 'settings': node = settingsView(); title = 'Ayarlar'; break;
     case 'import': node = importView(); title = 'İçe aktar'; break;
+    case 'bulk': node = bulkView(); title = 'Müşteriler'; break;
     default: node = calendarView(); title = state.settings.shopName || 'uChair';
   }
   const t = document.getElementById('title'); t.textContent = title; t.parentElement.hidden = !title;
   view.replaceChildren(node);
   view.classList.toggle('with-fab', name === '' || name === 'calendar');
-  const active = name === 'day' ? 'calendar' : name === 'customer' ? 'customers' : name === 'import' ? 'settings' : name || 'calendar';
+  const active = name === 'day' ? 'calendar' : name === 'customer' || name === 'bulk' ? 'customers' : name === 'import' ? 'settings' : name || 'calendar';
   document.querySelectorAll('#tabs a').forEach((a) => a.classList.toggle('on', a.dataset.k === active));
 }
 
