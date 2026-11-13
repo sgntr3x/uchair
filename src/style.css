@@ -254,3 +254,13 @@ textarea.input { resize: vertical; }
 .ctl .ghost { margin: 0; }
 .cbx { flex: none; width: var(--cbx); height: var(--cbx); border: var(--bw) solid var(--line); border-radius: var(--r-sm); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; }
 .cbx.on { background: var(--blue); color: var(--blue-ink); }
+
+/* düz yazı, sabit genişlikli (link, numara) */
+.mono { font-family: var(--mono); word-break: break-all; }
+#tabs[hidden] { display: none; }
+
+/* fiyatlar: mono */
+.price { font-family: var(--mono); font-weight: 600; letter-spacing: -.02em; white-space: nowrap; }
+.pricebox { display: flex; align-items: center; gap: var(--s1); }
+.pricebox .input.price { width: calc(var(--tap) * 2); margin: 0; text-align: right; padding: var(--s2) var(--s3); }
+.srow .input.price { width: calc(var(--tap) * 2); margin: 0; text-align: right; padding: var(--s2) var(--s3); }

@@ -23,6 +23,40 @@ function open() {
   return dbPromise;
 }
 
+// ---- Sunucu modu ----
+// /api/ping cevap verirse veri sunucudadır (online sürüm); vermezse telefondaki IndexedDB kullanılır (v1).
+let remote = false;
+export const isRemote = () => remote;
+
+/** 'local' | 'login' (sunucu var, giriş gerekli) | 'remote' (sunucu var, giriş yapılmış) */
+export async function initData() {
+  let info;
+  try {
+    const res = await fetch('/api/ping', { cache: 'no-store' });
+    info = res.ok ? await res.json().catch(() => null) : null;
+  } catch {
+    // Sunucu modunda internet yoksa boş yerel veritabanına düşme: yanlış/boş veri göstermesin
+    if (localStorage.getItem('uc-remote') === '1') throw new Error('Bağlantı yok. İnternete bağlanıp tekrar aç.');
+    return 'local';
+  }
+  if (!info?.uchair) return 'local';
+  remote = true;
+  localStorage.setItem('uc-remote', '1');
+  return info.admin ? 'remote' : 'login';
+}
+
+async function api(path, init = {}) {
+  const res = await fetch('/api/admin/' + path, { cache: 'no-store', headers: { 'content-type': 'application/json' }, ...init });
+  if (res.status === 401) { const e = new Error('Giriş gerekli'); e.code = 'LOGIN'; throw e; }
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Sunucu hatası');
+  return res.json();
+}
+export async function login(username, password) {
+  const res = await fetch('/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password }) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Giriş olmadı');
+}
+export const logout = () => fetch('/api/admin/logout', { method: 'POST' });
+
 async function tx(store, mode, fn) {
   const db = await open();
   return new Promise((resolve, reject) => {
@@ -41,12 +75,12 @@ export const uid = () => {
   return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
 };
 
-export const getAll = (store) => tx(store, 'readonly', (s) => s.getAll());
-export const put = (store, value) => tx(store, 'readwrite', (s) => s.put(value));
-export const remove = (store, id) => tx(store, 'readwrite', (s) => s.delete(id));
+export const getAll = (store) => remote ? api(store) : tx(store, 'readonly', (s) => s.getAll());
+export const put = (store, value) => remote ? api(store, { method: 'PUT', body: JSON.stringify(value) }) : tx(store, 'readwrite', (s) => s.put(value));
+export const remove = (store, id) => remote ? api(`${store}/${id}`, { method: 'DELETE' }) : tx(store, 'readwrite', (s) => s.delete(id));
 
 export async function getSettings() {
-  const row = await tx('settings', 'readonly', (s) => s.get('main'));
+  const row = remote ? (await api('settings')).find((r) => r.key === 'main') : await tx('settings', 'readonly', (s) => s.get('main'));
   return row ? { ...DEFAULT_SETTINGS, ...row.value } : DEFAULT_SETTINGS;
 }
 export const saveSettings = (value) => put('settings', { key: 'main', value });

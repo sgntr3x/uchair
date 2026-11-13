@@ -22,7 +22,8 @@ export const apptsOf = (customerId) =>
 export async function addAppointment({ customerId, date, time, note = '', services = [] }) {
   if (isSlotTaken(state.appointments, date, time)) throw new Error('Bu saat zaten dolu');
   const ap = { id: db.uid(), customerId, date, time, note, services, createdAt: new Date().toISOString() };
-  await db.put('appointments', ap);
+  try { await db.put('appointments', ap); }
+  catch (e) { if (db.isRemote()) await load().catch(() => {}); throw e; } // sunucu "dolu" dediyse güncel durumu çek
   state.appointments.push(ap);
   return ap;
 }
@@ -34,7 +35,8 @@ export async function updateAppointment(ap) {
 export async function moveAppointment(id, date, time) {
   const ap = state.appointments.find((a) => a.id === id);
   if (state.appointments.some((a) => a.id !== id && a.date === date && a.time === time)) throw new Error('Bu saat zaten dolu');
-  await updateAppointment({ ...ap, date, time });
+  try { await updateAppointment({ ...ap, date, time }); }
+  catch (e) { if (db.isRemote()) await load().catch(() => {}); throw e; }
 }
 export async function removeAppointment(id) {
   const ap = state.appointments.find((a) => a.id === id);

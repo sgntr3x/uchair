@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "start": "npx --yes serve -l 5173 ."
+    "start": "npx --yes serve -l 5173 .",
+    "server": "node server/index.js",
+    "dev": "PORT=3000 OTP_BYPASS=123456 node server/index.js"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

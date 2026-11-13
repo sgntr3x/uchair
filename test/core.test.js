@@ -101,20 +101,6 @@ saçma satır
   assert.equal(skipped.length, 1);
 });
 
-import { nearbyAppointments } from '../src/core.js';
-test('aynı hafta içi randevu uyarısı için yakın randevular', () => {
-  const apps = [
-    { id: 'a', customerId: 'c1', date: '2026-11-13', time: '15:00' },
-    { id: 'b', customerId: 'c1', date: '2026-11-25', time: '10:00' },
-    { id: 'c', customerId: 'c2', date: '2026-11-14', time: '10:00' },
-  ];
-  const opt = { today: '2026-11-13' };
-  assert.deepEqual(nearbyAppointments(apps, 'c1', '2026-11-15', opt).map((a) => a.id), ['a']);
-  assert.deepEqual(nearbyAppointments(apps, 'c1', '2026-11-20', opt).map((a) => a.id), ['b']); // 13'e 7 gün: dışarıda, 25'e 5 gün: içeride
-  assert.equal(nearbyAppointments(apps, 'c1', '2026-12-10', opt).length, 0);
-  assert.equal(nearbyAppointments(apps, 'c1', '2026-11-15', { ...opt, excludeId: 'a' }).length, 0);
-});
-
 import { parseCustomers, normalizePhone, splitNewAndDuplicate } from '../src/customersImport.js';
 test('toplu müşteri ayrıştırma', () => {
   const text = `Ahmet Yılmaz 0532 111 22 33
@@ -142,4 +128,47 @@ import { reminderText } from '../src/core.js';
 test('hatırlatma mesajı: ilk ad, tarih ve saat', () => {
   assert.equal(reminderText({ name: 'Şükrü Işık', date: '2026-11-13', time: '11:00' }),
     'Merhaba Şükrü, 13 Kasım Cuma saat 11:00 randevunuzu hatırlatmak istedim. Gelemeyecekseniz haber verir misiniz?');
+});
+
+import { phoneKey, upcomingFor, onlineFreeSlots } from '../src/core.js';
+
+test('telefon anahtarı: farklı yazımlar aynı numara', () => {
+  for (const p of ['0532 111 22 33', '+90 532 111 22 33', '5321112233', '0090 532-111-22-33']) assert.equal(phoneKey(p), '5321112233');
+  assert.equal(phoneKey('0212 555 11 22'), null); // sabit hat
+  assert.equal(phoneKey('123'), null);
+  assert.equal(phoneKey(''), null);
+});
+
+test('bekleyen randevu: saati gelince hak geri döner', () => {
+  const customers = [{ id: 'c1', phone: '0532 111 22 33' }, { id: 'c2', phone: '0555 999 88 77' }, { id: 'c3', phone: '+90 532 111 22 33' }];
+  const appts = [{ id: 'a1', customerId: 'c1', date: '2026-11-13', time: '22:00' }];
+  const at = (h, m) => new Date(2026, 10, 13, h, m);
+  const who = { phone: '05321112233' };
+  assert.equal(upcomingFor(appts, customers, who, { now: at(20, 47) }).length, 1); // 20:47, bekliyor
+  assert.equal(upcomingFor(appts, customers, who, { now: at(21, 59) }).length, 1);
+  assert.equal(upcomingFor(appts, customers, who, { now: at(22, 0) }).length, 0); // 22:00 oldu, serbest
+  assert.equal(upcomingFor(appts, customers, { id: 'c3', phone: '+90 532 111 22 33' }, { now: at(20, 0) }).length, 1); // aynı numaralı başka kayıt
+  assert.equal(upcomingFor(appts, customers, { phone: '0555 999 88 77' }, { now: at(20, 0) }).length, 0); // başka numara
+  assert.equal(upcomingFor(appts, customers, who, { now: at(20, 0), excludeId: 'a1' }).length, 0); // taşınan randevu kendini saymaz
+  assert.equal(upcomingFor([{ id: 'a2', customerId: 'c1', date: '2026-11-20', time: '10:00' }], customers, who, { now: at(20, 0) }).length, 1); // gelecek günler
+});
+
+test('online slotlar: gün sınırı ve en az bekleme süresi', () => {
+  const now = new Date(2026, 10, 13, 10, 0);
+  const s = { ...S, onlineDays: 3, onlineLeadMinutes: 60 };
+  assert.equal(onlineFreeSlots('2026-11-13', [], s, now)[0], '11:00');
+  assert.equal(onlineFreeSlots('2026-11-15', [], s, now).length, 15); // 3. gün dahil
+  assert.deepEqual(onlineFreeSlots('2026-11-16', [], s, now), []); // sınır dışı
+  assert.deepEqual(onlineFreeSlots('2026-11-14', [], { ...s, onlineEnabled: false }, now), []);
+});
+
+import { formatPrice, servicesTotal } from '../src/core.js';
+test('fiyat biçimi ve toplam', () => {
+  assert.equal(formatPrice(300), '300 ₺');
+  assert.equal(formatPrice(1000), '1.000 ₺');
+  const prices = { Saç: 300, Sakal: 250, Maske: 100 };
+  assert.equal(servicesTotal(['Saç', 'Sakal'], prices), 550);
+  assert.equal(servicesTotal(['Saç', 'Cilt'], prices), 300); // fiyatsız işlem sayılmaz
+  assert.equal(servicesTotal(['Cilt'], prices), null); // hiç fiyat yok
+  assert.equal(servicesTotal([], prices), null);
 });

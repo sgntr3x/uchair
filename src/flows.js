@@ -2,7 +2,7 @@
 import { icon, serviceIconName } from './icons.js';
 import { h, sheet, toast, render, chip, fill, confirmSheet } from './ui.js';
 import { state, customerById, saveCustomer, addAppointment, updateAppointment, moveAppointment, removeAppointment, restoreAppointment } from './store.js';
-import { searchCustomers, nearbyAppointments, reminderText, freeSlots, nearbyFreeDays, formatDate, trDate, trShort, trMonth, waNumber, slotEnd, monthMatrix, dayStatus, daySlots } from './core.js';
+import { searchCustomers, upcomingFor, reminderText, freeSlots, nearbyFreeDays, formatDate, trDate, trShort, trMonth, waNumber, slotEnd, monthMatrix, dayStatus, daySlots } from './core.js';
 
 const opts = () => ({ settings: state.settings, now: new Date() });
 
@@ -113,14 +113,14 @@ export function serviceToggles(sel, extra = []) {
   }));
 }
 
-/** Aynı hafta içinde başka randevusu varsa berbere sorar. true = devam */
+/** Müşterinin saati henüz gelmemiş randevusu varsa berbere sorar (online alıp unutmuş olabilir). true = devam */
 async function guardNearby(c, date, excludeId = null) {
-  const near = nearbyAppointments(state.appointments, c.id, date, { excludeId });
+  const near = upcomingFor(state.appointments, state.customers, c, { excludeId });
   if (!near.length) return true;
   return confirmSheet({
-    title: 'Bu hafta zaten randevusu var',
-    lines: [`${c.name} için şu randevu(lar) kayıtlı:`,
-      ...near.map((a) => ({ text: `${trDate(a.date)} · ${a.time}`, strong: true })),
+    title: 'Zaten bekleyen randevusu var',
+    lines: [`${c.name} için henüz gelmemiş randevu kayıtlı:`,
+      ...near.map((a) => ({ text: `${trDate(a.date)} · ${a.time}${a.source === 'online' ? ' (online aldı)' : ''}`, strong: true })),
       `Yine de ${trDate(date)} için de randevu oluşturulsun mu? Eski randevu silinmez.`],
     ok: 'Evet, oluştur', cancel: 'Vazgeç',
   });

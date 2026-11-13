@@ -1,4 +1,4 @@
-import { requestPersistence, purgeOldAppointments } from './db.js';
+import { requestPersistence, purgeOldAppointments, initData, isRemote, login } from './db.js';
 import { load, state } from './store.js';
 import { h, go, sheet, toast } from './ui.js';
 import { backupDue, formatDate, trDate } from './core.js';
@@ -49,13 +49,44 @@ function maybeForceBackup() {
   { locked: true });
 }
 
+/** Sunucu modunda giriş ekranı (kullanıcı adı + şifre). Giriş olunca resolve eder. */
+function loginScreen() {
+  return new Promise((resolve) => {
+    document.getElementById('tabs').hidden = true;
+    const view = document.getElementById('view');
+    const user = h('input', { class: 'input', placeholder: 'Kullanıcı adı', autocomplete: 'username', autocapitalize: 'none', autocorrect: 'off', spellcheck: false, value: localStorage.getItem('uc-user') || '' });
+    const pw = h('input', { class: 'input', type: 'password', placeholder: 'Şifre', autocomplete: 'current-password' });
+    const err = h('p', { class: 'warn' });
+    const btn = h('button', { class: 'primary' }, 'Gir');
+    const submit = async () => {
+      btn.disabled = true;
+      try { await login(user.value, pw.value); localStorage.setItem('uc-user', user.value.trim()); document.getElementById('tabs').hidden = false; resolve(); }
+      catch (e) { err.textContent = e.message; pw.select(); btn.disabled = false; }
+    };
+    btn.onclick = submit;
+    for (const el of [user, pw]) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    view.replaceChildren(h('div', { class: 'form' },
+      h('h2', {}, 'Dükkân kapısı'), h('p', { class: 'muted' }, 'İçeri girmek için kullanıcı adı ve şifreyi yaz.'),
+      user, pw, err, btn));
+    setTimeout(() => (user.value ? pw : user).focus(), 50);
+  });
+}
+
+/** Sunucu modunda başka yerden (müşteri online randevusu, başka cihaz) gelenleri çek */
+async function refresh() {
+  if (!isRemote() || document.hidden || document.querySelector('.overlay') || document.activeElement?.matches('input, textarea')) return;
+  try { await load(); route(); } catch { /* bağlantı geçici koptu: sonraki turda dener */ }
+}
+
 async function main() {
   buildTabs();
   document.getElementById('pole').replaceChildren(poleMark());
   // Beklenmeyen hata olursa sessiz kalmasın
   window.addEventListener('error', (e) => toast('Hata: ' + e.message));
   window.addEventListener('unhandledrejection', (e) => toast('Hata: ' + (e.reason?.message || e.reason)));
-  requestPersistence();
+  const mode = await initData();
+  if (mode === 'login') await loginScreen();
+  if (mode === 'local') requestPersistence();
   try { await purgeOldAppointments(); } catch (e) { console.warn('purge', e); }
   await load();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -63,8 +94,9 @@ async function main() {
   window.addEventListener('hashchange', () => { route(); toTop(); });
   window.addEventListener('uc:render', route);
   route();
-  maybeForceBackup();
-  // Uygulama arka plandan dönünce (gün değişmiş olabilir) tazele
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) route(); });
+  if (!isRemote()) maybeForceBackup(); // sunucuda veri zaten sunucuda yedekli
+  // Uygulama arka plandan dönünce (gün değişmiş olabilir, online randevu gelmiş olabilir) tazele
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) isRemote() ? refresh() : route(); });
+  setInterval(refresh, 30000);
 }
 main().catch((e) => { document.getElementById('view').textContent = 'Hata: ' + e.message; console.error(e); });

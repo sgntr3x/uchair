@@ -17,6 +17,10 @@ export const DEFAULT_SETTINGS = {
   closedDates: [], // ['2026-12-25', ...]
   shopName: 'uChair',
   services: ['Saç', 'Sakal', 'Maske', 'Boya'], // randevuda işaretlenecek hizmetler
+  servicePrices: {}, // {Saç: 300, ...} TL. Fiyatı olmayan işlem fiyatsız gösterilir
+  onlineEnabled: true, // müşteri linkinden randevu alınabilsin mi
+  onlineDays: 14, // müşteri en fazla kaç gün ilerisine randevu alabilir (en çok 14)
+  onlineLeadMinutes: 60, // müşteri en az kaç dakika önceden alabilir
 };
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -203,15 +207,58 @@ export function waNumber(phone) {
   return d;
 }
 
-/** Müşterinin hedef tarihe `days` gün yakınındaki (gelecek) diğer randevuları */
-export function nearbyAppointments(appointments, customerId, date, { days = 6, excludeId = null, today = formatDate(new Date()) } = {}) {
-  return appointments
-    .filter((a) => a.customerId === customerId && a.id !== excludeId && a.date >= today && Math.abs(dayDiff(date, a.date)) <= days)
-    .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time));
-}
-
 /** Randevu hatırlatma mesajı (WhatsApp'ta hazır yazılı gelir) */
 export function reminderText({ name, date, time }) {
   const first = (name || '').trim().split(/\s+/)[0];
   return `Merhaba ${first}, ${trDate(date)} saat ${time} randevunuzu hatırlatmak istedim. Gelemeyecekseniz haber verir misiniz?`;
+}
+
+// ---------- Online randevu kuralları (sunucu ve müşteri sayfası ortak) ----------
+
+/**
+ * Telefonu karşılaştırma anahtarına çevirir: 10 haneli Türkiye cep numarası (5XXXXXXXXX).
+ * 0532 111 22 33 / +90 532 111 22 33 / 5321112233 hepsi aynı anahtar. Geçersizse null.
+ */
+export function phoneKey(phone) {
+  let d = String(phone || '').replace(/\D/g, '');
+  if (d.startsWith('0090')) d = d.slice(4);
+  else if (d.startsWith('90') && d.length === 12) d = d.slice(2);
+  else if (d.startsWith('0') && d.length === 11) d = d.slice(1);
+  return /^5\d{9}$/.test(d) ? d : null;
+}
+
+/**
+ * Müşterinin henüz gelmediği (saati geçmemiş) randevuları. Aynı numaralı başka müşteri kayıtları da sayılır.
+ * `who`: {id?, phone?}. Kural: bir numaranın aynı anda en fazla 1 bekleyen randevusu olur;
+ * randevu saati gelince hak geri döner (ör. 22:00 randevusu 22:00'da biter sayılır).
+ */
+export function upcomingFor(appointments, customers, who, { excludeId = null, now = new Date() } = {}) {
+  const key = phoneKey(who.phone);
+  const ids = new Set(customers.filter((c) => (key && phoneKey(c.phone) === key) || c.id === who.id).map((c) => c.id));
+  if (who.id) ids.add(who.id);
+  const today = formatDate(now);
+  const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return appointments
+    .filter((a) => ids.has(a.customerId) && a.id !== excludeId && (a.date > today || (a.date === today && a.time > hhmm)))
+    .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time));
+}
+
+/** Online alınabilen boş saatler: bugünden `onlineDays` gün ve `onlineLeadMinutes` sınırı içinde */
+export function onlineFreeSlots(date, appointments, settings = DEFAULT_SETTINGS, now = new Date()) {
+  if (!settings.onlineEnabled) return [];
+  const today = formatDate(now);
+  if (date < today || date > addDays(today, settings.onlineDays - 1)) return [];
+  const limit = now.getHours() * 60 + now.getMinutes() + settings.onlineLeadMinutes;
+  return freeSlots(date, appointments, settings, now).filter(
+    (t) => date > today || toMinutes(t) >= limit
+  );
+}
+
+/** 300 -> "300 ₺", 1000 -> "1.000 ₺" */
+export const formatPrice = (n) => `${Number(n).toLocaleString('tr-TR')} ₺`;
+
+/** Seçilen işlemlerin toplamı (fiyatı olmayanlar sayılmaz). Hiç fiyat yoksa null. */
+export function servicesTotal(names, prices = {}) {
+  const priced = names.filter((n) => Number.isFinite(prices[n]));
+  return priced.length ? priced.reduce((sum, n) => sum + prices[n], 0) : null;
 }

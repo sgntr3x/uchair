@@ -52,6 +52,14 @@
 - Ana ekrana ekleme rehberi, ikon, açılış ekranı
 - iPhone 11 üzerinde gerçek test, büyük dokunma alanları, koyu mod
 
+### Faz 7 – Online randevu (v2) ✅ (VPS'e kurulum bekliyor)
+- Aynı repo: `server/` (Node, bağımlılıksız, SQLite) + `book/` (müşteri sayfası). `src/` ve fontlar ortak.
+- `/` müşteri sayfası, `/admin/` berber uygulaması (şifreli), veri sunucuda. `npm start` hâlâ v1 (yerel).
+- Kurallar (`src/core.js`, testli): telefon zorunlu (TR cep), bir numaranın aynı anda en fazla 1 bekleyen randevusu (saati gelince hak döner), en fazla 14 gün ilerisi, en az X dk önceden.
+- Müşteri girişi: açılışta numara ekranı → SMS kodu → takvim. Yeni müşteri "Müşteri kaydı" ile isim + numara + kod. Randevusu varsa "Randevum" ekranı (saat değiştir / iptal), yoksa takvim. Randevu alırken tekrar doğrulama yok.
+- SMS sağlayıcısı takılabilir (`server/sms.js`: console, netgsm, twilio, webhook). Canlı SMS için sağlayıcı hesabı gerekir.
+- Kurulum: `server/README.md`.
+
 ## Notlar / eksikler / öneriler
 1. **Veri kaybı riski**: iOS, tarayıcı verisini silebilir (Safari verisini temizleme, uzun süre kullanmama). Ana ekrana eklenmiş PWA daha güvenli ama yine de **otomatik yedek hatırlatması** şart (Faz 5). `navigator.storage.persist()` istenecek.
 2. **Eşzamanlı çift rezervasyon**: Tek kullanıcı olduğu için sorun yok; ama aynı slota iki kez kayıt engellenecek.

@@ -25,7 +25,7 @@ export function dayView(date) {
       const c = customerById(ap.customerId);
       return h('button', { class: 'slot taken', onclick: () => appointmentSheet(ap) },
         label, h('span', { class: 'grow' }, h('span', { class: 'name' }, c?.name || 'Silinmiş müşteri'),
-          ap.services?.length > 0 && h('span', { class: 'svctxt' }, ap.services.join(' · '))), ap.note && icon('note', 18));
+          (ap.services?.length > 0 || ap.source === 'online') && h('span', { class: 'svctxt' }, [...(ap.services || []), ap.source === 'online' && 'online'].filter(Boolean).join(' · '))), ap.note && icon('note', 18));
     }
     if (freeSet.has(t)) return h('button', { class: 'slot free', onclick: () => bookSlot(date, t) }, label, h('span', { class: 'grow' }, 'Koltuk boş'), icon('plus', 20));
     return h('div', { class: 'slot past' }, label, h('span', { class: 'grow' }, 'geçti'));
