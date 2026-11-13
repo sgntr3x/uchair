@@ -71,6 +71,7 @@
   --cell-h: 64px;
   --sheet-max: 90vh;
   --svc-h: 58px;
+  --cbx: 28px;
 
   /* Şerit ve tarama desenleri: inline SVG (gradient yok) */
   --pole: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect width='32' height='32' fill='%23FBF6EA'/%3E%3Cpath fill='%23C8372D' d='M0 0H8L0 8ZM32 0V8L8 32H0V24L24 0ZM0 32L32 0V8L8 32Z'/%3E%3Cpath fill='%231F3F73' d='M16 0H24L0 24V16ZM16 32L32 16V24L24 32Z'/%3E%3C/svg%3E");
@@ -211,8 +212,8 @@ textarea.input { resize: vertical; }
 .grab { width: var(--s7); height: var(--s1); border-radius: var(--s1); background: var(--line-soft); margin: 0 auto var(--s2); }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s2); }
 .sheet-head strong { font: 700 var(--fs-xl)/var(--lh-tight) var(--display); }
-.toast { position: fixed; left: var(--s4); right: var(--s4); bottom: calc(var(--tab-h) + var(--safe-b) + var(--s3)); background: var(--ink); color: var(--bg); padding: var(--s3) var(--s4); border-radius: var(--r-sm); z-index: 60; display: flex; gap: var(--s3); align-items: center; justify-content: space-between; max-width: var(--w-max); margin: 0 auto; }
-.toast button { width: auto; min-height: var(--tap); margin: 0; border-color: var(--bg); color: var(--bg); background: transparent; padding: 0 var(--s4); }
+.toast { position: fixed; left: var(--s4); right: var(--s4); bottom: calc(var(--tab-h) + var(--safe-b) + var(--s3)); background: var(--ink); color: var(--bg); padding: var(--s3) var(--s4); border-radius: var(--r-sm); z-index: 60; display: flex; gap: var(--s3); align-items: center; justify-content: space-between; max-width: var(--w-max); margin: 0 auto; pointer-events: none; }
+.toast button { pointer-events: auto; width: auto; min-height: var(--tap); margin: 0; border-color: var(--bg); color: var(--bg); background: transparent; padding: 0 var(--s4); }
 
 #tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--surface); border-top: var(--bw) solid var(--line); padding-bottom: var(--safe-b); z-index: 30; }
 #tabs a { position: relative; flex: 1; min-height: var(--tab-h); justify-content: center; text-align: center; color: var(--ink-soft); text-decoration: none; font: 600 var(--fs-xs)/var(--lh-tight) var(--body); display: flex; flex-direction: column; align-items: center; gap: var(--s1); }
@@ -248,3 +249,8 @@ textarea.input { resize: vertical; }
 
 @media (prefers-reduced-motion: no-preference) { .sheet { animation: up var(--t) var(--ease); } @keyframes up { from { transform: translateY(var(--s5)); opacity: .6; } } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.ctl { display: flex; justify-content: space-between; align-items: center; }
+.ctl .ghost { margin: 0; }
+.cbx { flex: none; width: var(--cbx); height: var(--cbx); border: var(--bw) solid var(--line); border-radius: var(--r-sm); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; }
+.cbx.on { background: var(--blue); color: var(--blue-ink); }

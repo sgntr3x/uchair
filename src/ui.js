@@ -33,7 +33,7 @@ export function toast(msg, { action, onAction } = {}) {
   const t = h('div', { class: 'toast' }, h('span', {}, msg),
     action && h('button', { onclick: () => { t.remove(); onAction?.(); } }, action));
   document.body.append(t);
-  setTimeout(() => t.remove(), 6000);
+  setTimeout(() => t.remove(), action ? 4000 : 2000); // "Geri al" varsa biraz uzun kalır
 }
 
 /** Alttan açılan pencere. build(close) bir Node döndürür. */

@@ -5,27 +5,74 @@ import { searchCustomers, formatDate, trShort, waNumber } from '../core.js';
 import { bookForCustomer, appointmentSheet } from '../flows.js';
 
 let query = '';
+let editMode = false;
+const selected = new Set();
 
 export function customersView() {
   const today = formatDate(new Date());
   const list = h('div', { class: 'list' });
+  const bar = h('div', { class: 'fab-wrap' });
   const input = h('input', { class: 'input', type: 'search', placeholder: 'Müşteri ara…', value: query });
+  const visible = () => searchCustomers(state.customers, query);
+
+  function drawBar() {
+    fill(bar, editMode && selected.size > 0 && h('button', { class: 'primary fab', onclick: removeSelected }, icon('trash', 22), `Sil (${selected.size})`));
+    bar.hidden = !(editMode && selected.size > 0);
+    root.dataset.fab = bar.hidden ? '' : '1';
+    document.getElementById('view')?.classList.toggle('with-fab', !bar.hidden); // alttaki butonun altında içerik kalmasın
+  }
+
   function draw() {
     query = input.value;
-    const res = searchCustomers(state.customers, query);
-    fill(list, 
+    const res = visible();
+    fill(list,
       res.length === 0 && h('p', { class: 'muted' }, state.customers.length ? 'Sonuç yok.' : 'Koltuk boş, defter de. “Yeni” ile ilk müşteriyi ekle.'),
       ...res.map((c) => {
+        if (editMode) {
+          const on = selected.has(c.id);
+          return h('button', { class: 'row', 'aria-pressed': String(on), onclick: () => { on ? selected.delete(c.id) : selected.add(c.id); draw(); } },
+            h('span', { class: 'grow' }, c.name), h('span', { class: 'muted' }, c.phone || ''),
+            h('span', { class: 'cbx' + (on ? ' on' : '') }, on && icon('check', 18)));
+        }
         const next = apptsOf(c.id).filter((a) => a.date >= today).pop();
         return h('button', { class: 'row', onclick: () => go('/customer/' + c.id) },
           h('span', { class: 'grow' }, c.name),
           h('span', { class: 'muted' }, next ? `${trShort(next.date)} ${next.time}` : c.phone || ''));
       }));
+    drawBar();
   }
+
+  async function removeSelected() {
+    const ids = [...selected].filter((id) => state.customers.some((c) => c.id === id));
+    if (!ids.length) return;
+    const names = ids.map((id) => state.customers.find((c) => c.id === id).name);
+    const apptCount = ids.reduce((n, id) => n + apptsOf(id).length, 0);
+    const ok = await confirmSheet({
+      title: `${ids.length} müşteri silinsin mi?`, ok: 'Evet, sil', cancel: 'Vazgeç',
+      lines: [{ text: names.slice(0, 5).join(', ') + (names.length > 5 ? ` ve ${names.length - 5} kişi daha` : ''), strong: true },
+        apptCount ? `${apptCount} randevu da silinir.` : 'Kayıtlı randevuları yok.'],
+    });
+    if (!ok) return;
+    const snaps = [];
+    for (const id of ids) snaps.push(await deleteCustomer(id));
+    selected.clear(); editMode = false;
+    render();
+    toast(`${ids.length} müşteri silindi`, { action: 'Geri al', onAction: async () => { for (const sn of snaps) await restoreCustomer(sn); render(); } });
+  }
+
+  const toggle = h('button', { class: 'ghost', onclick: () => { editMode = !editMode; selected.clear(); render(); } }, editMode ? 'Bitti' : 'Düzenle');
+  const controls = editMode
+    ? h('div', { class: 'ctl' },
+        h('button', { class: 'ghost', onclick: () => { const v = visible(); const all = v.every((c) => selected.has(c.id)); v.forEach((c) => (all ? selected.delete(c.id) : selected.add(c.id))); draw(); } }, 'Tümünü seç'),
+        toggle)
+    : h('div', { class: 'ctl' }, h('button', { class: 'ghost', onclick: () => go('/bulk') }, icon('paste', 20), 'Toplu ekle'),
+        state.customers.length > 0 && toggle);
+
   input.addEventListener('input', draw);
+  const root = h('div', {}, h('div', { class: 'two' }, input, h('button', { class: 'primary', onclick: () => go('/customer/new') }, icon('plus', 20), 'Yeni')),
+    controls, list, bar);
   draw();
-  return h('div', {}, h('div', { class: 'two' }, input, h('button', { class: 'primary', onclick: () => go('/customer/new') }, icon('plus', 20), 'Yeni')),
-    h('button', { class: 'ghost', onclick: () => go('/bulk') }, icon('paste', 20), 'Toplu ekle'), list);
+  return root;
 }
 
 export function customerView(id) {

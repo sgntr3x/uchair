@@ -29,7 +29,7 @@ function route() {
   }
   const t = document.getElementById('title'); t.textContent = title; t.parentElement.hidden = !title;
   view.replaceChildren(node);
-  view.classList.toggle('with-fab', name === '' || name === 'calendar');
+  view.classList.toggle('with-fab', name === '' || name === 'calendar' || node.dataset?.fab === '1');
   const active = name === 'day' ? 'calendar' : name === 'customer' || name === 'bulk' ? 'customers' : name === 'import' ? 'settings' : name || 'calendar';
   document.querySelectorAll('#tabs a').forEach((a) => a.classList.toggle('on', a.dataset.k === active));
 }
