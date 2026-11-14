@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_SETTINGS, daySlots, freeSlots, nearestFree, nearbyFreeDays, addDays, dayDiff, searchCustomers,
+  DEFAULT_SETTINGS, hoursSummary, daySlots, freeSlots, nearestFree, nearbyFreeDays, addDays, dayDiff, searchCustomers,
 } from '../src/core.js';
 
 const S = DEFAULT_SETTINGS;
@@ -171,4 +171,12 @@ test('fiyat biçimi ve toplam', () => {
   assert.equal(servicesTotal(['Saç', 'Cilt'], prices), 300); // fiyatsız işlem sayılmaz
   assert.equal(servicesTotal(['Cilt'], prices), null); // hiç fiyat yok
   assert.equal(servicesTotal([], prices), null);
+});
+
+test('çalışma saatleri özeti', () => {
+  assert.equal(hoursSummary(DEFAULT_SETTINGS.hours), 'Her gün 09:00–24:00');
+  const w = { 1: { open: '09:00', close: '20:00' }, 2: { open: '09:00', close: '20:00' }, 3: { open: '09:00', close: '20:00' }, 4: { open: '09:00', close: '20:00' }, 5: { open: '09:00', close: '20:00' }, 6: { open: '10:00', close: '18:00' }, 0: null };
+  assert.equal(hoursSummary(w), 'Pzt–Cum 09:00–20:00 · Cmt 10:00–18:00 · Paz kapalı');
+  assert.equal(hoursSummary(w, [{ start: '13:00', end: '14:00' }]), 'Pzt–Cum 09:00–20:00 · Cmt 10:00–18:00 · Paz kapalı · mola 13:00–14:00');
+  assert.equal(hoursSummary({ 0: null, 1: null, 2: null, 3: null, 4: null, 5: null, 6: null }), 'Şu an kapalı');
 });

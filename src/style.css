@@ -113,6 +113,8 @@ button, .btn {
 button:active, .btn:active { background: var(--surface-2); }
 button.primary { background: var(--red); color: var(--red-ink); box-shadow: var(--shadow); }
 button.primary:active { background: var(--red); transform: translate(var(--press-shift), var(--press-shift)); box-shadow: var(--shadow-press); }
+button.blue { background: var(--blue); color: var(--blue-ink); }
+button.blue:active { background: var(--blue); transform: translate(var(--press-shift), var(--press-shift)); }
 button.danger { border-color: var(--red); color: var(--red); background: transparent; }
 button.ghost { border: 0; background: transparent; width: auto; padding: 0 var(--s2); color: var(--blue); }
 button.ghost:active { background: var(--surface-2); }
@@ -189,7 +191,9 @@ textarea.input { resize: vertical; }
 .cell.full .bar { background: var(--red-ink); opacity: .4; } .cell.full .bar i { background: var(--red-ink); }
 .cell.closed { background-color: var(--surface-2); background-image: var(--hatch); border-color: var(--line-soft); color: var(--ink-soft); }
 .cell.past { background: transparent; border-color: transparent; color: var(--ink-soft); opacity: .7; }
-.cell.today { border: var(--bw) solid var(--blue); }
+.cell.today { background: var(--blue); border: var(--bw) solid var(--line); color: var(--blue-ink); box-shadow: var(--shadow); }
+.cell.today .sub { color: var(--blue-ink); }
+.cell.today .bar { background: var(--blue-ink); opacity: .45; } .cell.today .bar i { background: var(--blue-ink); }
 .legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin: var(--s4) 0 var(--s2); font-size: var(--fs-sm); color: var(--ink-soft); }
 .legend span { display: inline-flex; align-items: center; gap: var(--s2); }
 .sw { width: var(--s4); height: var(--s4); border-radius: var(--r-sm); border: var(--hair) solid var(--ink-soft); background: var(--surface); display: inline-block; }
@@ -198,6 +202,7 @@ textarea.input { resize: vertical; }
 
 /* ana aksiyon: sabit Randevu al */
 .fab-wrap { position: fixed; left: var(--s4); right: var(--s4); bottom: calc(var(--tab-h) + var(--safe-b) + var(--s3)); max-width: var(--w-max); margin: 0 auto; z-index: 20; }
+.fab-wrap::before { content: ''; position: absolute; z-index: -1; inset: calc(var(--s3) * -1); background: var(--bg); } /* kaydırırken saat kutuları butonun altında görünmesin */
 .fab { margin: 0; min-height: var(--fab-h); font-size: var(--fs-lg); font-family: var(--display); font-weight: 700; }
 
 /* ayarlar */
@@ -264,3 +269,15 @@ textarea.input { resize: vertical; }
 .pricebox { display: flex; align-items: center; gap: var(--s1); }
 .pricebox .input.price { width: calc(var(--tap) * 2); margin: 0; text-align: right; padding: var(--s2) var(--s3); }
 .srow .input.price { width: calc(var(--tap) * 2); margin: 0; text-align: right; padding: var(--s2) var(--s3); }
+
+/* ekranda tek ana buton: pencere açıkken arkadaki kırmızı butonlar sönükleşir */
+body:has(.overlay) #view button.primary, body:has(.overlay) .fab-wrap .primary { background: var(--surface); color: var(--ink); box-shadow: none; }
+
+/* müşteri satırı: ad + numara solda, sıradaki randevu sağda */
+.row.two-line { min-height: calc(var(--row-h) + var(--s2)); }
+.row.two-line .grow { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s2) 0; }
+.row .sub { font: 500 var(--fs-sm)/var(--lh-tight) var(--mono); color: var(--ink-soft); }
+.row .next { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); }
+.row .next small { font-size: var(--fs-xs); color: var(--ink-soft); }
+.row .next b { font: 700 var(--fs-md)/1 var(--display); }
+.count-line { margin: var(--s2) 0; }

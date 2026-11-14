@@ -2,7 +2,7 @@
 // Kimlik: telefon numarasına giden SMS doğrulama kodu (giriş ve kayıt).
 import { randomBytes, randomInt, randomUUID, createHash, timingSafeEqual } from 'node:crypto';
 import {
-  DEFAULT_SETTINGS, onlineFreeSlots, upcomingFor, phoneKey, addDays, formatDate, daySlots, trDate, banForPhone, banMessage,
+  DEFAULT_SETTINGS, onlineFreeSlots, upcomingFor, phoneKey, addDays, formatDate, daySlots, trDate, banForPhone, banMessage, hoursSummary,
 } from '../src/core.js';
 
 export class BookingError extends Error {
@@ -18,7 +18,7 @@ export function getSettings(store) {
 /** Müşteriye gösterilecek ayarlar (kişisel veri yok) */
 export function publicConfig(store) {
   const s = getSettings(store);
-  return { shopName: s.shopName, services: s.services.map((name) => ({ name, price: Number.isFinite(s.servicePrices?.[name]) ? s.servicePrices[name] : null })), enabled: s.onlineEnabled, daysAhead: s.onlineDays, slotMinutes: s.slotMinutes };
+  return { shopName: s.shopName, services: s.services.map((name) => ({ name, price: Number.isFinite(s.servicePrices?.[name]) ? s.servicePrices[name] : null })), hours: hoursSummary(s.hours, s.breaks), enabled: s.onlineEnabled, daysAhead: s.onlineDays, slotMinutes: s.slotMinutes };
 }
 
 /** Önümüzdeki günlerin saatleri: slots = günün tüm saatleri, free = alınabilenler. İsim/numara asla dönmez. */

@@ -1,7 +1,7 @@
 import { icon } from '../icons.js';
 import { h, go, toast, render, fill, confirmSheet } from '../ui.js';
 import { state, saveCustomer, deleteCustomer, restoreCustomer, apptsOf } from '../store.js';
-import { searchCustomers, formatDate, trShort, waNumber } from '../core.js';
+import { searchCustomers, formatDate, trShort, waNumber, banStatus } from '../core.js';
 import { bookForCustomer, appointmentSheet } from '../flows.js';
 
 let query = '';
@@ -35,9 +35,11 @@ export function customersView() {
             h('span', { class: 'cbx' + (on ? ' on' : '') }, on && icon('check', 18)));
         }
         const next = apptsOf(c.id).filter((a) => a.date >= today).pop();
-        return h('button', { class: 'row', onclick: () => go('/customer/' + c.id) },
-          h('span', { class: 'grow' }, c.name),
-          h('span', { class: 'muted' }, next ? `${trShort(next.date)} ${next.time}` : c.phone || ''));
+        return h('button', { class: 'row two-line', onclick: () => go('/customer/' + c.id) },
+          h('span', { class: 'grow' },
+            h('span', { class: 'name' }, c.name, banStatus(c) && h('span', { class: 'warn small' }, ' · cezalı')),
+            h('span', { class: 'sub' }, c.phone || 'numara yok')),
+          next && h('span', { class: 'next' }, h('small', {}, 'Sıradaki'), h('span', {}, h('b', {}, trShort(next.date) + ' '), h('span', { class: 'mono' }, next.time))));
       }));
     drawBar();
   }
@@ -60,17 +62,17 @@ export function customersView() {
     toast(`${ids.length} müşteri silindi`, { action: 'Geri al', onAction: async () => { for (const sn of snaps) await restoreCustomer(sn); render(); } });
   }
 
-  const toggle = h('button', { class: 'ghost', onclick: () => { editMode = !editMode; selected.clear(); render(); } }, editMode ? 'Bitti' : 'Düzenle');
+  const toggle = h('button', { onclick: () => { editMode = !editMode; selected.clear(); render(); } }, editMode ? 'Bitti' : 'Düzenle');
   const controls = editMode
-    ? h('div', { class: 'ctl' },
-        h('button', { class: 'ghost', onclick: () => { const v = visible(); const all = v.every((c) => selected.has(c.id)); v.forEach((c) => (all ? selected.delete(c.id) : selected.add(c.id))); draw(); } }, 'Tümünü seç'),
+    ? h('div', { class: 'two' },
+        h('button', { onclick: () => { const v = visible(); const all = v.every((c) => selected.has(c.id)); v.forEach((c) => (all ? selected.delete(c.id) : selected.add(c.id))); draw(); } }, 'Tümünü seç'),
         toggle)
-    : h('div', { class: 'ctl' }, h('button', { class: 'ghost', onclick: () => go('/bulk') }, icon('paste', 20), 'Toplu ekle'),
+    : h('div', { class: 'two' }, h('button', { onclick: () => go('/bulk') }, icon('paste', 20), 'Toplu ekle'),
         state.customers.length > 0 && toggle);
 
   input.addEventListener('input', draw);
-  const root = h('div', {}, h('div', { class: 'two' }, input, h('button', { class: 'primary', onclick: () => go('/customer/new') }, icon('plus', 20), 'Yeni')),
-    controls, list, bar);
+  const root = h('div', {}, h('div', { class: 'two' }, input, h('button', { class: 'blue', onclick: () => go('/customer/new') }, icon('plus', 20), 'Yeni')),
+    controls, state.customers.length > 0 && h('p', { class: 'muted small count-line' }, `${state.customers.length} müşteri defterde`), list, bar);
   draw();
   return root;
 }
@@ -84,7 +86,7 @@ export function customerView(id) {
   const phone = h('input', { class: 'input', placeholder: 'Telefon', type: 'tel', value: c.phone || '' });
   const note = h('textarea', { class: 'input', rows: 2, placeholder: 'Not', value: c.note || '' });
 
-  const save = h('button', { class: 'primary', onclick: async () => {
+  const save = h('button', { class: isNew ? 'primary' : 'blue', onclick: async () => {
     if (!name.value.trim()) { toast('İsim gerekli'); return; }
     await saveCustomer({ ...c, name: name.value, phone: phone.value, note: note.value });
     toast('Kaydedildi');

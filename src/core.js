@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS = {
   },
   breaks: [], // [{start:'13:00', end:'14:00'}] her gün geçerli
   closedDates: [], // ['2026-12-25', ...]
-  shopName: 'uChair',
+  shopName: 'Tarık Demir Hair Artist',
   services: ['Saç', 'Sakal', 'Maske', 'Boya'], // randevuda işaretlenecek hizmetler
   servicePrices: {}, // {Saç: 300, ...} TL. Fiyatı olmayan işlem fiyatsız gösterilir
   onlineEnabled: true, // müşteri linkinden randevu alınabilsin mi
@@ -317,4 +317,22 @@ export function noShowStats(appointments) {
     m.set(a.customerId, e);
   }
   return m;
+}
+
+// ---------- Çalışma saatleri özeti (müşteri sayfası) ----------
+const DAY_SHORT = { 1: 'Pzt', 2: 'Sal', 3: 'Çar', 4: 'Per', 5: 'Cum', 6: 'Cmt', 0: 'Paz' };
+
+/** {0..6: {open,close}|null} → "Her gün 09:00–24:00" / "Pzt–Cmt 09:00–20:00 · Paz kapalı" (+ mola) */
+export function hoursSummary(hours, breaks = []) {
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const label = (d) => (hours[d] ? `${hours[d].open}–${hours[d].close}` : 'kapalı');
+  const groups = [];
+  for (const d of order) {
+    const g = groups[groups.length - 1];
+    if (g && g.label === label(d)) g.days.push(d); else groups.push({ label: label(d), days: [d] });
+  }
+  let text;
+  if (groups.length === 1) text = groups[0].label === 'kapalı' ? 'Şu an kapalı' : `Her gün ${groups[0].label}`;
+  else text = groups.map((g) => `${g.days.length > 1 ? `${DAY_SHORT[g.days[0]]}–${DAY_SHORT[g.days.at(-1)]}` : DAY_SHORT[g.days[0]]} ${g.label}`).join(' · ');
+  return breaks.length ? `${text} · mola ${breaks.map((b) => `${b.start}–${b.end}`).join(', ')}` : text;
 }

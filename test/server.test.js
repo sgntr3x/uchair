@@ -245,6 +245,7 @@ test('müşteri sayfasına işlemler fiyatıyla gider (fiyatı olmayan null)', a
   store.put('settings', { key: 'main', value: { onlineEnabled: true, servicePrices: { Saç: 300, Sakal: 250, Maske: 100, Boya: 1000 }, services: ['Saç', 'Sakal', 'Maske', 'Boya', 'Cilt'] } });
   const cfg = (await call('/api/book/config')).json;
   assert.deepEqual(cfg.services.map((x) => [x.name, x.price]), [['Saç', 300], ['Sakal', 250], ['Maske', 100], ['Boya', 1000], ['Cilt', null]]);
+  assert.equal(cfg.hours, 'Her gün 09:00–24:00');
 });
 
 test('berber oturumu kullanıcı adı/şifreye bağlı: şifre değişince eski çerez geçersiz', async () => {

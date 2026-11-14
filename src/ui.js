@@ -37,15 +37,19 @@ export function toast(msg, { action, onAction } = {}) {
 }
 
 /** Alttan açılan pencere. build(close) bir Node döndürür. */
+const openSheets = new Set(); // kilitsiz açık pencereler: sayfa değişince kapatılır
+export const closeSheets = () => [...openSheets].forEach((close) => close());
+
 export function sheet(title, build, { locked = false, onClose } = {}) {
   const body = h('div', { class: 'sheet-body' });
-  const close = () => { overlay.remove(); onClose?.(); };
+  const close = () => { openSheets.delete(close); overlay.remove(); onClose?.(); };
   const overlay = h('div', { class: 'overlay', onclick: (e) => { if (!locked && e.target === overlay) close(); } },
     h('div', { class: 'sheet' }, h('div', { class: 'grab' }),
       h('div', { class: 'sheet-head' }, h('strong', {}, title), !locked && h('button', { class: 'iconbtn', 'aria-label': 'Kapat', onclick: close }, icon('close', 22))),
       body));
   body.append(build(close));
   document.body.append(overlay);
+  if (!locked) openSheets.add(close);
   return close;
 }
 

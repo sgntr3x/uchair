@@ -36,3 +36,14 @@
 .askrow { display: flex; align-items: center; gap: var(--s3); }
 .askrow p { margin: 0; }
 .askrow .ghost { width: auto; margin: 0; }
+
+/* giriş ekranı: dükkân kapısı */
+.hero { font: 700 var(--fs-2xl)/var(--lh-tight) var(--display); letter-spacing: -.02em; margin: 0 0 var(--s2); }
+/* fiyat listesi | çalışma saatleri */
+.info { margin: var(--s6) 0 0; border-top: var(--bw) solid var(--line); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.info-col { padding: var(--s3) var(--s3) 0 0; }
+.info-col + .info-col { padding: var(--s3) 0 0 var(--s3); border-left: var(--hair) solid var(--line-soft); }
+.info h3 { margin: 0 0 var(--s2); }
+.info-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); padding: var(--s2) 0; border-bottom: var(--hair) solid var(--line-soft); font-weight: 600; }
+.info-row .price { font: 600 var(--fs-sm) var(--mono); white-space: nowrap; }
+.info-row.hrs { font: 600 var(--fs-sm)/var(--lh-body) var(--mono); }

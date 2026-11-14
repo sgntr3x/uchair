@@ -1,6 +1,6 @@
 import { requestPersistence, purgeOldAppointments, initData, isRemote, login } from './db.js';
 import { load, state } from './store.js';
-import { h, go, sheet, toast } from './ui.js';
+import { h, go, sheet, toast, closeSheets } from './ui.js';
 import { backupDue, formatDate, trDate } from './core.js';
 import { icon, poleMark } from './icons.js';
 import { runBackup } from './backup.js';
@@ -91,7 +91,7 @@ async function main() {
   await load();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   const toTop = () => { document.getElementById('scroll').scrollTop = 0; };
-  window.addEventListener('hashchange', () => { route(); toTop(); });
+  window.addEventListener('hashchange', () => { closeSheets(); route(); toTop(); });
   window.addEventListener('uc:render', route);
   route();
   if (!isRemote()) maybeForceBackup(); // sunucuda veri zaten sunucuda yedekli

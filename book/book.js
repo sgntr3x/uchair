@@ -1,5 +1,5 @@
 import { h, fill, toast, confirmSheet, sheet } from '/src/ui.js';
-import { poleMark, icon } from '/src/icons.js';
+import { poleMark, icon, serviceIconName } from '/src/icons.js';
 import { trDate, relDay, formatDate, slotEnd, monthMatrix, trMonth, formatPrice } from '/src/core.js';
 
 const WD = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -81,14 +81,27 @@ function phoneStep() {
   for (const el of [name, phone]) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
   const switchMode = (mode) => { Object.assign(a, { mode, error: '', noAccount: false, phone: phone.value, name: name.value }); draw(); };
   return h('div', { class: 'auth' },
-    h('p', { class: 'lead' }, reg ? 'Müşteri kaydı.' : 'Numaranı yaz.'),
-    h('p', { class: 'muted' }, reg ? 'İsmini ve numaranı yaz, SMS ile doğrulayalım.' : 'Sana SMS ile 6 haneli bir doğrulama kodu göndereceğiz.'),
+    h('p', { class: 'hero' }, reg ? 'Deftere yazılalım.' : 'Koltuğunu ayırtalım.'),
+    h('p', { class: 'muted' }, reg ? 'İsmini ve numaranı yaz, SMS ile doğrulayalım.' : 'Numaranı yaz, SMS ile gelen 6 haneli kodla gir.'),
     reg && h('label', { class: 'field' }, h('span', {}, 'İsim Soyisim'), name),
     h('label', { class: 'field' }, h('span', {}, 'Cep telefonu'), phone),
     err,
     a.noAccount && h('button', { onclick: () => switchMode('register') }, 'Müşteri kaydı oluştur'),
     btn,
-    h('button', { class: 'ghost', onclick: () => switchMode(reg ? 'login' : 'register') }, reg ? 'Zaten kayıtlıyım, giriş yap' : 'İlk kez mi geliyorsun? Müşteri kaydı'));
+    h('button', { class: 'ghost', onclick: () => switchMode(reg ? 'login' : 'register') }, reg ? 'Zaten kayıtlıyım, giriş yap' : 'İlk kez mi geliyorsun? Müşteri kaydı'),
+    infoTable());
+}
+
+// Fiyat listesi | çalışma saatleri: 2 sütun, 1 satır, hep açık
+function infoTable() {
+  const priced = ui.cfg.services.filter((x) => x.price !== null);
+  const hours = ui.cfg.hours ? ui.cfg.hours.split(' · ') : [];
+  if (!priced.length && !hours.length) return null;
+  return h('section', { class: 'info' },
+    h('div', { class: 'info-col' }, h('h3', {}, 'Fiyat listesi'),
+      ...priced.map(({ name, price }) => h('div', { class: 'info-row' }, h('span', {}, name), h('span', { class: 'price' }, formatPrice(price))))),
+    h('div', { class: 'info-col' }, h('h3', {}, 'Çalışma saatleri'),
+      ...hours.map((t) => h('div', { class: 'info-row hrs' }, h('span', {}, t)))));
 }
 
 function codeStep() {
