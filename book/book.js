@@ -303,7 +303,8 @@ function draw(keepScroll = false) {
   const hasActive = ui.me.appointments.length > 0 && !ui.changing;
   fill(view,
     myBlock(),
-    hasActive
+    ui.me.ban ? h('div', { class: 'err' }, ui.me.ban.message)
+    : hasActive
       ? h('p', { class: 'muted' }, 'Bekleyen randevun varken yenisini alamazsın. Saatini değiştirebilir ya da iptal edebilirsin; randevu saatin geçince yenisini alırsın.')
       : [h('p', { class: 'lead' }, ui.changing ? 'Yeni saatini seç.' : 'Koltuğunu ayırt.'), slotStep(), ui.time && (ui.changing ? changeStep() : bookStep())]);
   if (keepScroll) sc.scrollTop = y;

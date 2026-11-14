@@ -262,3 +262,59 @@ export function servicesTotal(names, prices = {}) {
   const priced = names.filter((n) => Number.isFinite(prices[n]));
   return priced.length ? priced.reduce((sum, n) => sum + prices[n], 0) : null;
 }
+
+// ---------- Ceza (gelmeyen müşteri) ----------
+/** Berberin seçebileceği ceza süreleri. days: null → süresiz. */
+export const BAN_OPTIONS = [
+  { key: 'week', label: '1 hafta', days: 7 },
+  { key: 'month', label: '1 ay', days: 30 },
+  { key: 'quarter', label: '3 ay', days: 90 },
+  { key: 'forever', label: 'Süresiz (bir daha hiç)', days: null },
+];
+
+/** Müşteriye yazılacak ceza kaydı: {forever:true} ya da {until:'YYYY-MM-DD'} (o günden itibaren serbest). */
+export function makeBan(optionKey, now = new Date()) {
+  const o = BAN_OPTIONS.find((x) => x.key === optionKey);
+  if (!o) throw new Error('Bilinmeyen ceza');
+  const since = now.toISOString();
+  return o.days === null ? { forever: true, since } : { until: addDays(formatDate(now), o.days), since };
+}
+
+/** Ceza şu an geçerliyse {forever, until} döner, yoksa/bittiyse null. */
+export function banStatus(customer, now = new Date()) {
+  const b = customer?.ban;
+  if (!b) return null;
+  if (b.forever) return { forever: true, until: null };
+  if (/^\d{4}-\d{2}-\d{2}$/.test(b.until || '') && formatDate(now) < b.until) return { forever: false, until: b.until };
+  return null;
+}
+
+/** Aynı numaralı kayıtlardan herhangi biri cezalıysa en ağır cezayı döner. */
+export function banForPhone(customers, key, now = new Date()) {
+  let worst = null;
+  for (const c of customers) {
+    if (phoneKey(c.phone) !== key) continue;
+    const s = banStatus(c, now);
+    if (s && (!worst || s.forever || (!worst.forever && s.until > worst.until))) worst = s;
+  }
+  return worst;
+}
+
+/** Berber ekranı için kısa etiket */
+export const banLabel = (s) => (s.forever ? 'Süresiz ceza' : `${trShort(s.until)} tarihine kadar ceza`);
+
+export const banMessage = (s) => s.forever
+  ? 'Online randevu alman kalıcı olarak kapatıldı. Dükkânı arayabilirsin.'
+  : `${trDate(s.until)} tarihine kadar randevu alamazsın. Dükkânı arayabilirsin.`;
+
+/** Randevularda "gelmedi" işaretli müşteriler: Map(customerId → {count, last}) */
+export function noShowStats(appointments) {
+  const m = new Map();
+  for (const a of appointments) {
+    if (!a.noShow) continue;
+    const e = m.get(a.customerId) || { count: 0, last: '' };
+    e.count++; if (a.date > e.last) e.last = a.date;
+    m.set(a.customerId, e);
+  }
+  return m;
+}

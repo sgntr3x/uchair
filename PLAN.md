@@ -60,6 +60,11 @@
 - SMS sağlayıcısı takılabilir (`server/sms.js`: console, netgsm, twilio, webhook). Canlı SMS için sağlayıcı hesabı gerekir.
 - Kurulum: `server/README.md`.
 
+### Faz 8 – Yönetim ✅
+- Ayarlar başlık butonlarıyla açılır; kapalı günler takvimden seçilir.
+- Randevuda "Randevuya gelmedi" işareti. Ayarlar → Ceza: gelmeyenler listesi; 1 hafta / 1 ay / 3 ay / süresiz ceza. Cezalı numara online randevu alamaz ve saat taşıyamaz (sunucu zorlar); berber elle eklerken uyarılır.
+- Sunucu (sadece online): her gece 00:00'da `data/backups/` altına SQLite yedeği, son 30 tutulur. Yerel (offline) sürüm etkilenmez.
+
 ## Notlar / eksikler / öneriler
 1. **Veri kaybı riski**: iOS, tarayıcı verisini silebilir (Safari verisini temizleme, uzun süre kullanmama). Ana ekrana eklenmiş PWA daha güvenli ama yine de **otomatik yedek hatırlatması** şart (Faz 5). `navigator.storage.persist()` istenecek.
 2. **Eşzamanlı çift rezervasyon**: Tek kullanıcı olduğu için sorun yok; ama aynı slota iki kez kayıt engellenecek.

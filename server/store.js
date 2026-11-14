@@ -61,6 +61,8 @@ export function openStore(file) {
       db.exec('BEGIN IMMEDIATE');
       try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { db.exec('ROLLBACK'); throw e; }
     },
+    /** Tutarlı tek dosyalık kopya (VACUUM INTO) */
+    backupTo: (file) => { q('VACUUM INTO ?').run(file); },
     close: () => db.close(),
   };
 }

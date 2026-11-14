@@ -2,7 +2,7 @@
 import { icon, serviceIconName } from './icons.js';
 import { h, sheet, toast, render, chip, fill, confirmSheet } from './ui.js';
 import { state, customerById, saveCustomer, addAppointment, updateAppointment, moveAppointment, removeAppointment, restoreAppointment } from './store.js';
-import { searchCustomers, upcomingFor, reminderText, freeSlots, nearbyFreeDays, formatDate, trDate, trShort, trMonth, waNumber, slotEnd, monthMatrix, dayStatus, daySlots } from './core.js';
+import { searchCustomers, upcomingFor, reminderText, freeSlots, nearbyFreeDays, formatDate, trDate, trShort, trMonth, waNumber, banStatus, banLabel, slotEnd, monthMatrix, dayStatus, daySlots } from './core.js';
 
 const opts = () => ({ settings: state.settings, now: new Date() });
 
@@ -40,7 +40,7 @@ export function customerPicker({ title, onPick, step2 }) {
       fill(list, 
         h('button', { class: 'row add', onclick: () => newForm(q) }, icon('plus', 20), 'Yeni müşteri' + (q.trim() ? `: “${q.trim()}”` : '')),
         ...res.map((c) => h('button', { class: 'row', onclick: () => pick(c) },
-          h('span', { class: 'grow' }, c.name), h('span', { class: 'muted' }, c.phone || ''))));
+          h('span', { class: 'grow' }, c.name), banStatus(c) && h('span', { class: 'warn small' }, 'cezalı'), h('span', { class: 'muted' }, c.phone || ''))));
     }
     input.addEventListener('input', draw);
     root.append(input, list);
@@ -115,6 +115,10 @@ export function serviceToggles(sel, extra = []) {
 
 /** Müşterinin saati henüz gelmemiş randevusu varsa berbere sorar (online alıp unutmuş olabilir). true = devam */
 async function guardNearby(c, date, excludeId = null) {
+  const ban = banStatus(c);
+  if (ban && !(await confirmSheet({
+    title: 'Bu müşteri cezalı', ok: 'Yine de oluştur', cancel: 'Vazgeç',
+    lines: [{ text: c.name, strong: true }, `${banLabel(ban)}: online randevu alamaz.`, 'Sen elle ekleyebilirsin; cezayı Ayarlar → Ceza bölümünden kaldırabilirsin.'] }))) return false;
   const near = upcomingFor(state.appointments, state.customers, c, { excludeId });
   if (!near.length) return true;
   return confirmSheet({
@@ -181,6 +185,7 @@ export function appointmentSheet(ap) {
     const sel = new Set(ap.services || []);
     return h('div', { class: 'form' },
       h('div', { class: 'big' }, `${trDate(ap.date)} · ${ap.time}–${slotEnd(ap.time, state.settings)}`),
+      ap.noShow && h('div', { class: 'warn' }, 'Gelmedi olarak işaretli'),
       c?.phone && h('div', { class: 'muted' }, c.phone),
       h('h3', {}, 'Yapılacak işlemler'),
       serviceToggles(sel, ap.services || []),
@@ -197,6 +202,11 @@ export function appointmentSheet(ap) {
           render();
         } });
       } }, icon('move', 20), 'Başka saate taşı'),
+      h('button', { onclick: async () => {
+        await updateAppointment({ ...ap, noShow: !ap.noShow });
+        toast(ap.noShow ? 'Gelmedi işareti kaldırıldı' : 'Gelmedi olarak işaretlendi');
+        close(); render();
+      } }, icon(ap.noShow ? 'check' : 'close', 20), ap.noShow ? 'Geldi olarak düzelt' : 'Randevuya gelmedi'),
       h('button', { class: 'danger', onclick: async () => {
         if (!(await confirmSheet({ title: 'Randevu iptal edilsin mi?', ok: 'Evet, iptal et', cancel: 'Vazgeç',
           lines: [{ text: c?.name || 'Silinmiş müşteri', strong: true }, `${trDate(ap.date)} · ${ap.time}`] }))) return;

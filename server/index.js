@@ -15,6 +15,7 @@ import { openStore, STORES } from './store.js';
 import * as booking from './booking.js';
 import { limiter } from './limiter.js';
 import { createSms } from './sms.js';
+import { scheduleNightly } from './backup.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2' };
@@ -211,6 +212,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (!/^\d{6}$/.test(otpBypass)) throw new Error('OTP_BYPASS 6 haneli rakam olmalı (örn. 123456).');
     console.warn(`UYARI: OTP_BYPASS açık: ${otpBypass} kodu HER numara için geçer. Sadece test için!`);
   }
+  scheduleNightly(store, join(dataDir, 'backups'));
   const app = createApp({ store, user, password, sms, otpBypass, smsDailyLimit: Number(process.env.SMS_DAILY_LIMIT) || 300, secret: loadSecret(join(dataDir, 'secret')), trustProxy: process.env.TRUST_PROXY === '1' });
   http.createServer(app).listen(port, process.env.HOST || '127.0.0.1', () => console.log(`uChair: http://127.0.0.1:${port}  (berber: /admin/)`));
 }

@@ -1,7 +1,7 @@
 import { icon } from '../icons.js';
-import { h, go, toast, render, confirmSheet } from '../ui.js';
-import { state, saveSettings, reloadAfterImport } from '../store.js';
-import { toMinutes, fromMinutes, trDate } from '../core.js';
+import { h, go, toast, render, confirmSheet, sheet } from '../ui.js';
+import { state, saveSettings, reloadAfterImport, saveCustomer } from '../store.js';
+import { toMinutes, fromMinutes, trDate, trShort, trMonth, monthMatrix, dayStatus, formatDate, BAN_OPTIONS, makeBan, banStatus, banLabel, noShowStats } from '../core.js';
 import { importAll, isRemote, logout } from '../db.js';
 import { runBackup, readBackupFile } from '../backup.js';
 
@@ -10,6 +10,10 @@ const DAYS = [[1, 'Pazartesi'], [2, 'Salı'], [3, 'Çarşamba'], [4, 'Perşembe'
 
 const select = (options, value, onchange) =>
   h('select', { class: 'input sel', onchange: (e) => onchange(e.target.value), value }, ...options.map((o) => h('option', { value: o.v ?? o }, o.l ?? o)));
+
+const nowD = new Date();
+let closedView = { y: nowD.getFullYear(), m: nowD.getMonth() }; // tatil takviminde görünen ay
+let openTab = null; // açık ayar başlığı (render'lar arasında hatırlanır)
 
 export function settingsView() {
   const s = state.settings;
@@ -38,16 +42,36 @@ export function settingsView() {
       await saveSettings({ breaks: [...s.breaks, { start: bS.value, end: bE.value }] }); render();
     } }, 'Ekle')));
 
-  // Tatil günleri
-  const dateIn = h('input', { class: 'input', type: 'date' });
+  // Tatil günleri: takvimden dokunarak kapat/aç
+  const todayStr = formatDate(new Date());
+  const shiftM = (n) => { const d = new Date(closedView.y, closedView.m + n, 1); closedView = { y: d.getFullYear(), m: d.getMonth() }; render(); };
+  const toggleClosed = async (d, st) => {
+    if (st.manualClosed) { await saveSettings({ closedDates: s.closedDates.filter((x) => x !== d) }); toast('Gün tekrar açıldı'); render(); return; }
+    if (st.closed) { toast('Haftalık programda bu gün zaten kapalı'); return; }
+    const n = state.appointments.filter((a) => a.date === d).length;
+    if (n && !(await confirmSheet({ title: 'Bu günde randevu var', ok: 'Yine de kapat', cancel: 'Vazgeç',
+      lines: [`${trDate(d)} günü için ${n} randevu kayıtlı.`, 'Günü kapatırsan randevular silinmez ama yeni randevu önerilmez.'] }))) return;
+    await saveSettings({ closedDates: [...s.closedDates, d].sort() }); toast('Gün kapatıldı (tatil)'); render();
+  };
+  const closedCells = monthMatrix(closedView.y, closedView.m).flat().map((d) => {
+    if (!d) return h('div', { class: 'mc empty' });
+    const st = dayStatus(d, state.appointments, s, new Date());
+    const past = d < todayStr;
+    return h('button', { class: `mc ${past ? 'past' : st.closed ? 'closed' : ''}${d === todayStr ? ' today' : ''}`, disabled: past, 'aria-label': trDate(d) + (st.manualClosed ? ' kapalı' : ''),
+      onclick: () => toggleClosed(d, st) }, h('span', {}, String(+d.slice(8))));
+  });
   const closed = h('section', { class: 'card' }, h('h2', {}, 'Kapalı günler (tatil / izin)'),
-    s.closedDates.length === 0 && h('p', { class: 'muted' }, 'Kapalı gün yok. Takvimde güne dokunup da kapatabilirsin.'),
+    h('p', { class: 'muted small' }, 'Güne dokun: kapanır (taramalı). Kapalı güne tekrar dokunursan açılır.'),
+    h('div', { class: 'mnav' },
+      h('button', { class: 'iconbtn', 'aria-label': 'Önceki ay', onclick: () => shiftM(-1) }, icon('left', 20)),
+      h('b', { class: 'grow center' }, trMonth(closedView.y, closedView.m)),
+      h('button', { class: 'iconbtn', 'aria-label': 'Sonraki ay', onclick: () => shiftM(1) }, icon('right', 20))),
+    h('div', { class: 'mgrid wd' }, ...['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((x) => h('div', {}, x))),
+    h('div', { class: 'mgrid' }, ...closedCells),
+    h('h3', {}, 'Kapalı günler'),
+    s.closedDates.length === 0 && h('p', { class: 'muted' }, 'Kapalı gün yok.'),
     ...s.closedDates.map((d) => h('div', { class: 'srow' }, h('span', { class: 'grow' }, trDate(d) + ' ' + d.slice(0, 4)),
-      h('button', { class: 'ghost', onclick: async () => { await saveSettings({ closedDates: s.closedDates.filter((x) => x !== d) }); render(); } }, 'Aç'))),
-    h('div', { class: 'srow' }, dateIn, h('button', { onclick: async () => {
-      if (!dateIn.value || s.closedDates.includes(dateIn.value)) return;
-      await saveSettings({ closedDates: [...s.closedDates, dateIn.value].sort() }); render();
-    } }, 'Kapat')));
+      h('button', { class: 'ghost', onclick: async () => { await saveSettings({ closedDates: s.closedDates.filter((x) => x !== d) }); render(); } }, 'Aç'))));
 
   // İşlemler + fiyatlar. Fiyat boş bırakılırsa müşteriye fiyatsız gösterilir.
   const prices = s.servicePrices || {}; // sadece ilk çizim için; kayıtlarda HER ZAMAN güncel değer okunur (çizim sonrası yapılan değişiklikleri ezmesin)
@@ -110,19 +134,58 @@ export function settingsView() {
       h('button', { onclick: async () => { try { await navigator.clipboard.writeText(link); toast('Link kopyalandı'); } catch { toast(link); } } }, icon('note', 20), 'Linki kopyala'),
     ]);
 
+  // Ceza: gelmeyenler listesi, dokununca ceza seçenekleri
+  const stats = noShowStats(state.appointments);
+  const offenders = state.customers
+    .map((c) => ({ c, ns: stats.get(c.id), ban: banStatus(c) }))
+    .filter((x) => x.ns || x.ban)
+    .sort((a, b) => (!!b.ban - !!a.ban) || (b.ns?.last || '').localeCompare(a.ns?.last || ''));
+  const banSheet = ({ c, ns, ban }) => sheet(c.name, (close) => {
+    const apply = async (b, msg) => { const { ban: _old, ...rest } = c; await saveCustomer(b ? { ...rest, ban: b } : rest); toast(msg); close(); render(); };
+    return h('div', { class: 'form' },
+      c.phone && h('div', { class: 'muted' }, c.phone),
+      ns && h('p', {}, `${ns.count} kez gelmedi · son: ${trShort(ns.last)}`),
+      ban && h('div', { class: 'warn' }, banLabel(ban)),
+      h('h3', {}, ban ? 'Cezayı değiştir' : 'Ceza ver'),
+      ...BAN_OPTIONS.map((o) => h('button', { class: o.days === null ? 'danger' : '', onclick: () => apply(makeBan(o.key), `${c.name}: ${o.label} ceza verildi`) }, o.label)),
+      ban && h('button', { class: 'ghost', onclick: () => apply(null, 'Ceza kaldırıldı') }, icon('unlock', 20), 'Cezayı kaldır'),
+      h('p', { class: 'muted small' }, 'Cezalı müşteri bu süre boyunca online randevu alamaz. Elle randevu ekleyebilirsin; seni uyarır.'));
+  });
+  const penalties = h('section', { class: 'card' }, h('h2', {}, 'Ceza'),
+    offenders.length === 0
+      ? h('p', { class: 'muted' }, 'Gelmeyen yok. Randevuda “Randevuya gelmedi” dersen isim burada çıkar.')
+      : h('div', { class: 'list' }, ...offenders.map((x) => h('button', { class: 'row', onclick: () => banSheet(x) },
+          h('span', { class: 'grow' }, h('span', { class: 'name' }, x.c.name), h('br'), h('span', { class: 'muted small' }, x.ns ? `${x.ns.count} kez gelmedi · son ${trShort(x.ns.last)}` : 'cezalı')),
+          x.ban && h('span', { class: 'warn small' }, x.ban.forever ? 'Süresiz' : 'Bitiş ' + trShort(x.ban.until))))),
+    h('p', { class: 'muted small' }, 'Gelmedi kayıtları, randevularla birlikte 1 ay sonra silinir; verilen ceza silinmez.'));
+
   const shop = h('input', { class: 'input', value: s.shopName || '', placeholder: 'Dükkân adı', onchange: async (e) => { await saveSettings({ shopName: e.target.value.trim() || 'uChair' }); toast('Kaydedildi'); render(); } });
-  return h('div', {},
-    h('section', { class: 'card' }, h('h2', {}, 'Dükkân adı'), shop),
+
+  const panels = {
+    genel: h('section', { class: 'card' }, h('h2', {}, 'Dükkân adı'), shop),
+    saat: h('div', {},
+      h('section', { class: 'card' }, h('h2', {}, 'Çalışma saatleri'), ...hoursRows,
+        h('div', { class: 'srow' }, h('span', { class: 'grow' }, 'Randevu süresi'), slotSel)),
+      breaks),
+    tatil: closed,
+    islem: services,
+    ceza: penalties,
     online,
-    h('section', { class: 'card' }, h('h2', {}, 'Çalışma saatleri'), ...hoursRows,
-      h('div', { class: 'srow' }, h('span', { class: 'grow' }, 'Randevu süresi'), slotSel)),
-    breaks, closed, services,
-    h('section', { class: 'card' }, h('h2', {}, 'Yedek'),
+    yedek: h('section', { class: 'card' }, h('h2', {}, 'Yedek'),
       h('p', { class: 'muted' }, isRemote() ? 'Veriler sunucuda duruyor. Telefondaki eski (v1) yedeği buradan yükleyebilirsin.' : `Son yedek: ${last}. Haftada bir yedek istenir.`),
       h('button', { class: 'primary', onclick: async () => { if (await runBackup()) { toast('Yedek alındı'); render(); } } }, icon('upload', 20), 'Şimdi yedekle'),
       h('button', { onclick: () => fileIn.click() }, icon('download', 20), 'Yedekten yükle'), fileIn,
       h('button', { onclick: () => go('/import') }, icon('paste', 20), 'Notlar’dan içe aktar'),
-      h('p', {}, storage)),
-    isRemote() && h('button', { class: 'ghost', onclick: async () => { await logout(); location.reload(); } }, 'Çıkış yap'),
-    h('p', { class: 'muted small' }, '1 aydan eski randevular uygulama açılırken otomatik silinir. Müşteri kayıtları silinmez.'));
+      h('p', {}, storage),
+      h('p', { class: 'muted small' }, '1 aydan eski randevular uygulama açılırken otomatik silinir. Müşteri kayıtları silinmez.')),
+  };
+  const tabs = [['genel', 'Dükkân', 'sliders'], ['saat', 'Saatler', 'clock'], ['tatil', 'Kapalı günler', 'calendar'],
+    ['islem', 'İşlemler', 'scissors'], ['ceza', 'Ceza', 'lock'], ['online', 'Online randevu', 'phone'], ['yedek', 'Yedek', 'download']].filter(([k]) => panels[k]);
+  if (!panels[openTab]) openTab = null;
+
+  return h('div', {},
+    h('div', { class: 'svcs' }, ...tabs.map(([k, label, ic]) =>
+      h('button', { class: 'svc' + (openTab === k ? ' on' : ''), 'aria-expanded': String(openTab === k), onclick: () => { openTab = openTab === k ? null : k; render(); } }, icon(ic, 20), h('span', {}, label)))),
+    openTab ? panels[openTab] : h('p', { class: 'muted' }, 'Bir başlığa dokun, ayarları aşağıda açılsın.'),
+    isRemote() && h('button', { class: 'ghost', onclick: async () => { await logout(); location.reload(); } }, 'Çıkış yap'));
 }

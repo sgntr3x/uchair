@@ -1,6 +1,8 @@
 # uChair sunucusu (online sürüm)
 
-Node >= 22.13, bağımlılık yok. Veri: `data/uchair.db` (SQLite). Yedek için bu dosyayı kopyalaman yeter.
+Node >= 22.13, bağımlılık yok. Veri: `data/uchair.db` (SQLite).
+
+**Otomatik yedek:** sunucu her gece 00:00'da (İstanbul saati) `data/backups/uchair-YYYY-MM-DD.db` dosyası üretir, son 30 yedeği tutar. Geri yüklemek için servisi durdur, yedeği `data/uchair.db` olarak kopyala, `data/uchair.db-wal` ve `-shm` dosyalarını sil, servisi başlat. Yedekler aynı diskte durur: ara sıra `data/backups/` klasörünü başka yere de kopyala. Telefondaki yerel (offline) sürüm bundan etkilenmez.
 
 ```
 UCHAIR_USER=kullanici UCHAIR_PASSWORD=güçlü-bir-şifre PORT=3000 node server/index.js

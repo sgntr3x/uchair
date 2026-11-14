@@ -2,7 +2,7 @@
 // Kimlik: telefon numarasına giden SMS doğrulama kodu (giriş ve kayıt).
 import { randomBytes, randomInt, randomUUID, createHash, timingSafeEqual } from 'node:crypto';
 import {
-  DEFAULT_SETTINGS, onlineFreeSlots, upcomingFor, phoneKey, addDays, formatDate, daySlots, trDate,
+  DEFAULT_SETTINGS, onlineFreeSlots, upcomingFor, phoneKey, addDays, formatDate, daySlots, trDate, banForPhone, banMessage,
 } from '../src/core.js';
 
 export class BookingError extends Error {
@@ -44,6 +44,10 @@ const hashCode = (code, salt) => createHash('sha256').update(`${salt}:${code}`).
 const maskPhone = (key) => `0${key.slice(0, 3)} *** ** ${key.slice(8)}`;
 /** Müşteri kaydındaki yazım: 05XX XXX XX XX */
 const formatPhone = (key) => `0${key.slice(0, 3)} ${key.slice(3, 6)} ${key.slice(6, 8)} ${key.slice(8)}`;
+const assertNotBanned = (store, key, now) => {
+  const ban = banForPhone(store.getAll('customers'), key, now);
+  if (ban) throw new BookingError('BANNED', banMessage(ban), 403);
+};
 const customerByKey = (store, key) => store.getAll('customers').find((c) => phoneKey(c.phone) === key);
 
 /**
@@ -116,7 +120,8 @@ export function me(store, key, now = new Date()) {
   const owner = customers.find((c) => phoneKey(c.phone) === key);
   if (!owner) throw new BookingError('NO_ACCOUNT', 'Giriş gerekli', 401); // berber müşteriyi silmiş olabilir
   const name = owner.name;
-  return { name, phone: key, appointments: list.map((a) => ({ id: a.id, date: a.date, time: a.time, services: a.services || [] })) };
+  const ban = banForPhone(customers, key, now);
+  return { name, phone: key, ban: ban && { forever: ban.forever, until: ban.until, message: banMessage(ban) }, appointments: list.map((a) => ({ id: a.id, date: a.date, time: a.time, services: a.services || [] })) };
 }
 
 function ownAppointment(store, key, id, now) {
@@ -134,6 +139,7 @@ export function cancelMine(store, key, id, now = new Date()) {
 export function moveMine(store, key, id, { date, time }, now = new Date()) {
   return store.transaction(() => {
     const ap = ownAppointment(store, key, id, now);
+    assertNotBanned(store, key, now);
     const settings = getSettings(store);
     if (!settings.onlineEnabled) throw new BookingError('OFF', 'Online randevu şu an kapalı. Dükkânı ara.', 403);
     if (!onlineFreeSlots(date, store.getAll('appointments'), settings, now).includes(time)) throw new BookingError('TAKEN', 'Bu saat dolu. Başka bir saat seç.', 409);
@@ -150,6 +156,7 @@ export function book(store, key, { date, time, services }, now = new Date()) {
   return store.transaction(() => {
     const customer = customerByKey(store, key);
     if (!customer) throw new BookingError('NO_ACCOUNT', 'Giriş gerekli', 401);
+    assertNotBanned(store, key, now);
     const settings = getSettings(store);
     if (!settings.onlineEnabled) throw new BookingError('OFF', 'Online randevu şu an kapalı. Dükkânı ara.', 403);
     const appts = store.getAll('appointments');
